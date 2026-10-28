@@ -169,7 +169,7 @@ main{position:relative;z-index:1;flex:1 1 auto;min-height:0}
 input[type=range]{accent-color:var(--terra-ink);width:150px}
 .list-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
 .count-badge{font-size:12px;color:var(--dim);margin-left:auto}
-.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .img-card{border-radius:14px;overflow:hidden;position:relative;transition:transform .25s,opacity .25s,box-shadow .25s,background .25s;
           animation:card-pop .5s cubic-bezier(.2,1.3,.4,1) both}
 .img-card:hover{transform:translateY(-4px)}
@@ -182,6 +182,65 @@ input[type=range]{accent-color:var(--terra-ink);width:150px}
                font-size:11px;padding:2px 8px;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
 .img-card .body{padding:9px 10px;display:flex;flex-direction:column;gap:8px}
 .img-card .body input[type=text]{width:100%;padding:6px 9px;border-radius:8px;font-size:12px}
+/* ---- ช่องคำเฉลย: ต้องเด่นและบอกสถานะ (ว่าง / รหัสไฟล์ / ไม่มีภาษาไทย / พร้อม) ---- */
+.name-box{display:flex;flex-direction:column;gap:5px;padding:8px 9px 9px;border-radius:12px;border:1.5px solid transparent;transition:background .25s,border-color .25s}
+.name-head{display:flex;align-items:center;justify-content:space-between;gap:4px 6px;flex-wrap:wrap}
+.name-label{font:600 12.5px 'Prompt',sans-serif;color:var(--ink);white-space:nowrap}
+.name-chip{font:600 10.5px 'Prompt',sans-serif;padding:2px 9px;border-radius:12px;color:#fff;white-space:nowrap}
+.name-msg{font:500 11.5px/1.45 'Sarabun',sans-serif;min-height:0}
+.name-msg:empty{display:none}
+.img-card .body .name-box input.name-in[type=text]{width:100%;padding:9px 11px;border-radius:10px;font-size:14px;font-weight:500;
+  border:2px solid var(--nb,#aaa);background:var(--nbg,#fff);color:var(--ink);transition:border-color .25s,box-shadow .25s,background .25s}
+.img-card .body .name-box input.name-in[type=text]:focus{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--nb) 35%,transparent)}
+.name-box.st-bad{--nb:#D64533;--nbg:#FFF4F1;background:rgba(214,69,51,.10);border-color:rgba(214,69,51,.55)}
+.name-box.st-bad .name-chip,.st-chip-bad{background:#B3261E}
+.name-box.st-bad .name-msg{color:#98200F}
+.name-box.st-bad input.name-in{animation:attn 1.8s ease-in-out infinite}
+.name-box.st-warn{--nb:#E39A1B;--nbg:#FFF8EA;background:rgba(227,154,27,.13);border-color:rgba(227,154,27,.6)}
+.name-box.st-warn .name-chip,.st-chip-warn{background:#935400}
+.name-box.st-warn .name-msg{color:#6F4200}
+.name-box.st-ok{--nb:#5FA463;--nbg:#F4FBF4;background:rgba(95,164,99,.10);border-color:rgba(95,164,99,.5)}
+.name-box.st-ok .name-chip,.st-chip-ok{background:#2E7D32}
+.name-box.st-ok .name-msg{color:#2B6A2F}
+@keyframes attn{0%,100%{box-shadow:0 0 0 0 rgba(214,69,51,.0)}50%{box-shadow:0 0 0 4px rgba(214,69,51,.35),0 0 16px 2px rgba(214,69,51,.35)}}
+.img-card[data-st=bad]{--glow-c:#D64533}
+.img-card[data-st=warn]{--glow-c:#E39A1B}
+.img-card.pulse{animation:card-pulse 1.2s ease-in-out 2}
+@keyframes card-pulse{0%,100%{transform:none}50%{transform:translateY(-6px) scale(1.02)}}
+.name-summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border-radius:12px;margin-bottom:14px;
+  font:500 13px/1.5 'Prompt',sans-serif;border:1.5px solid}
+.name-summary:empty{display:none}
+.name-summary .ns-ico{font-size:20px;line-height:1}
+.name-summary .ns-txt{flex:1 1 260px}
+.name-summary.bad{background:rgba(214,69,51,.14);border-color:#D64533;color:#8F1D12}
+.name-summary.warn{background:rgba(227,154,27,.16);border-color:#E39A1B;color:#6F4200}
+.name-summary.ok{background:rgba(46,125,50,.13);border-color:#5FA463;color:#1F5A24}
+.name-summary.bad .ns-ico{animation:attn-ico 1.2s ease-in-out infinite}
+@keyframes attn-ico{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+
+/* ---- กล่องยืนยันก่อนเริ่มเกม ---- */
+.dlg{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:16px;background:rgba(10,18,36,.55);
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:dlg-bg .25s ease-out}
+.dlg[hidden]{display:none}
+@keyframes dlg-bg{from{opacity:0}to{opacity:1}}
+.dlg-card{width:min(680px,94vw);max-height:90vh;display:flex;flex-direction:column;gap:12px;padding:22px 22px 18px;border-radius:22px;
+  background:rgba(255,255,255,.86);border:1px solid rgba(255,255,255,.7);
+  -webkit-backdrop-filter:blur(10px) saturate(132%);backdrop-filter:blur(10px) saturate(132%);
+  box-shadow:inset 0 1.5px 0 rgba(255,255,255,.95),0 30px 70px -20px rgba(0,0,0,.6);animation:dlg-pop .4s cubic-bezier(.2,1.3,.4,1)}
+@keyframes dlg-pop{from{opacity:0;transform:translateY(18px) scale(.92)}to{opacity:1;transform:none}}
+.dlg-card.bad{box-shadow:inset 0 1.5px 0 rgba(255,255,255,.95),0 0 0 2px rgba(214,69,51,.7),0 0 40px 4px rgba(214,69,51,.35),0 30px 70px -20px rgba(0,0,0,.6)}
+.dlg-card.warn{box-shadow:inset 0 1.5px 0 rgba(255,255,255,.95),0 0 0 2px rgba(227,154,27,.7),0 0 40px 4px rgba(227,154,27,.3),0 30px 70px -20px rgba(0,0,0,.6)}
+.dlg-card h3{font:700 19px 'Prompt',sans-serif;display:flex;align-items:center;gap:10px;color:var(--ink)}
+.dlg-card p{font-size:14px;line-height:1.6;color:var(--ink2)}
+.dlg-list{overflow:auto;display:flex;flex-direction:column;gap:7px;max-height:42vh;padding:2px}
+.dlg-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:12px;background:rgba(255,255,255,.7);border:1px solid rgba(120,100,80,.18)}
+.dlg-row img{width:56px;height:42px;object-fit:cover;border-radius:7px;flex:0 0 auto}
+.dlg-row .dr-n{font:600 12px 'Prompt',sans-serif;color:var(--dim);flex:0 0 auto;min-width:48px}
+.dlg-row .dr-t{flex:1;min-width:0;font:500 14px 'Sarabun',sans-serif;color:var(--ink);overflow-wrap:anywhere}
+.dlg-row .dr-t.empty-t{color:#98200F;font-style:italic}
+.dlg-row .name-chip{flex:0 0 auto}
+.dlg-acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:4px}
+.dlg-acts .btn{padding:10px 18px;font-size:14px}
 .acts{display:flex;align-items:center;gap:5px}
 .acts .spacer{flex:1}
 .empty{padding:34px;text-align:center;color:var(--dim);font-size:13px}
@@ -420,9 +479,11 @@ kbd{background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.9);border
 
     <div class="panel">
       <div class="list-head">
-        <h2 style="margin:0">4. เลือกภาพที่จะใช้เล่น</h2>
+        <h2 style="margin:0">4. ตรวจคำเฉลย และเลือกภาพที่จะใช้เล่น</h2>
         <span class="count-badge" id="countBadge">0 ภาพ</span>
       </div>
+      <p class="hint">ช่อง <b>คำเฉลย (ชื่อภาพ)</b> ในแต่ละภาพ คือข้อความที่จะแสดงบนจอเมื่อเฉลย — admin ต้องกรอกเป็นภาษาไทยที่อ่านออก ก่อนเริ่มเกม</p>
+      <div class="name-summary" id="nameSummary" role="status"></div>
       <div class="row" style="margin-bottom:14px">
         <button class="btn sm" id="btnAll">เลือกทั้งหมด</button>
         <button class="btn sm" id="btnNone">ไม่เลือกเลย</button>
@@ -500,6 +561,18 @@ kbd{background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.9);border
 </main>
 
 <div class="toast" id="toast"></div>
+
+<div class="dlg" id="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+  <div class="dlg-card" id="dlgCard">
+    <h3 id="dlgTitle"></h3>
+    <p id="dlgMsg"></p>
+    <div class="dlg-list" id="dlgList"></div>
+    <div class="dlg-acts">
+      <button class="btn" id="dlgFix"></button>
+      <button class="btn primary" id="dlgGo"></button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ---------------- HELPERS / STATE ---------------- */
@@ -629,6 +702,7 @@ const SFX = (()=>{
     tick(){ tone({f:1000,f2:720,d:.04,g:.07,type:'triangle'}); },
     click(){ tone({f:1400,f2:900,d:.035,g:.05,type:'square'}); },
     thump(){ tone({f:95,f2:42,d:.24,g:.5}); },
+    warn(){ tone({f:392,d:.14,type:'triangle',g:.22}); tone({f:294,d:.22,t:.14,type:'triangle',g:.22}); },
     suspense(dur){
       const N=14;
       for(let k=0;k<N;k++){
@@ -902,7 +976,11 @@ function renderList(){
     card.innerHTML =
       '<div class="thumb"><span class="ord">'+(idx+1)+'</span><img alt=""></div>'+
       '<div class="body">'+
-        '<input type="text" placeholder="ชื่อภาพ / คำเฉลย">'+
+        '<div class="name-box">'+
+          '<div class="name-head"><span class="name-label">✎ คำเฉลย (ชื่อภาพ)</span><span class="name-chip"></span></div>'+
+          '<input type="text" class="name-in" placeholder="พิมพ์คำเฉลยที่จะแสดงเมื่อเปิดครบ" aria-label="คำเฉลย (ชื่อภาพ)">'+
+          '<div class="name-msg"></div>'+
+        '</div>'+
         '<div class="acts">'+
           '<label class="switch" style="font-size:12px"><input type="checkbox" '+(im.on?'checked':'')+'><span class="track"></span>ใช้เล่น</label>'+
           '<span class="spacer"></span>'+
@@ -912,9 +990,10 @@ function renderList(){
         '</div>'+
       '</div>';
     card.querySelector('img').src = im.src;
-    const nameIn = card.querySelector('input[type=text]');
+    const nameIn = card.querySelector('input.name-in');
     nameIn.value = im.name;
-    nameIn.onchange = e=>{ im.name = e.target.value; };
+    nameIn.oninput = e=>{ im.name = e.target.value; paintName(card, im); updateNameSummary(); };
+    paintName(card, im);
     card.querySelector('input[type=checkbox]').onchange = e=>{ im.on = e.target.checked; renderList(); };
     card.querySelectorAll('button[data-a]').forEach(b=>{
       b.onclick = ()=>{
@@ -927,7 +1006,134 @@ function renderList(){
     });
     E.imgGrid.appendChild(card);
   });
+  updateNameSummary();
 }
+
+/* ---------------- ตรวจคำเฉลย (ชื่อภาพ) ---------------- */
+const THAI = /[฀-๿]/;
+const IMG_EXT = /\.(jpe?g|png|webp|gif|heic|heif|bmp|avif|tiff?)$/i;
+// รูปแบบรหัส/ชื่อไฟล์ที่ระบบหรือกล้อง/แอปตั้งให้ (เฉพาะชื่อที่ไม่มีอักษรไทย)
+const CODE_RES = [
+  /^(img|dsc[nf]?|pxl|mvimg|vid|photo|image|pic|picture|screenshot|screen ?shot|whatsapp( image)?|line|wp|signal|capture|scan|untitled|download|copy|new)[\s_\-.]*\(?\d/i,
+  /^(image|photo|pic|picture|untitled|screenshot|scan|capture|download)$/i,
+  /^[\d\s_\-().]+$/,
+  /^[0-9a-f]{8}-?[0-9a-f]{4}-?/i,
+  /^[0-9a-f]{16,}$/i,
+  /\d{4,}/,
+  /^\S*_\S*$/
+];
+function nameState(raw){
+  const n = (raw||'').trim();
+  if(!n) return 'empty';
+  if(IMG_EXT.test(n)) return 'code';
+  if(THAI.test(n)) return 'ok';
+  return CODE_RES.some(r=>r.test(n)) ? 'code' : 'nothai';
+}
+const NAME_UI = {
+  empty:{lv:'bad', chip:'ยังไม่ได้กรอก', msg:'ต้องกรอก: ข้อความนี้จะแสดงบนจอเมื่อเฉลยภาพ'},
+  code:{lv:'bad', chip:'ยังเป็นรหัสไฟล์', msg:'ชื่อนี้เป็นรหัส/ชื่อไฟล์ของระบบ ไม่ใช่ข้อความภาษาไทย — กรุณาแก้เป็นคำเฉลยที่อ่านออก'},
+  nothai:{lv:'warn', chip:'ไม่มีภาษาไทย', msg:'ไม่พบตัวอักษรไทย — ตรวจสอบว่าต้องการแสดงข้อความนี้จริงหรือไม่'},
+  ok:{lv:'ok', chip:'✓ พร้อมแล้ว', msg:''}
+};
+function paintName(card, im){
+  const u = NAME_UI[nameState(im.name)];
+  const box = card.querySelector('.name-box');
+  box.className = 'name-box st-' + u.lv;
+  box.querySelector('.name-chip').textContent = u.chip;
+  box.querySelector('.name-msg').textContent = u.msg;
+  card.dataset.st = u.lv;
+}
+function reviewList(){
+  return S.images.map((im,i)=>({im, i, st:nameState(im.name)})).filter(o=>o.im.on);
+}
+function countIssues(list){
+  let bad = 0, warn = 0;
+  list.forEach(o=>{ const lv = NAME_UI[o.st].lv; if(lv==='bad') bad++; else if(lv==='warn') warn++; });
+  return {bad, warn};
+}
+function updateNameSummary(){
+  const el = $('nameSummary');
+  const list = reviewList();
+  if(!list.length){ el.className = 'name-summary'; el.innerHTML = ''; return; }
+  const c = countIssues(list);
+  const lv = c.bad ? 'bad' : c.warn ? 'warn' : 'ok';
+  const txt = c.bad
+    ? 'ต้องแก้ '+c.bad+' ภาพ — ยังไม่ได้กรอกคำเฉลย หรือยังเป็นรหัสชื่อไฟล์ของระบบ'+(c.warn ? ' (และควรตรวจอีก '+c.warn+' ภาพ ที่ไม่มีภาษาไทย)' : '')
+    : c.warn ? 'ควรตรวจอีกครั้ง '+c.warn+' ภาพ — ชื่อที่ไม่มีตัวอักษรไทย ยืนยันว่าถูกต้องก่อนเริ่มเกม'
+    : 'คำเฉลยครบถ้วนทั้ง '+list.length+' ภาพ พร้อมเริ่มเกม';
+  el.className = 'name-summary ' + lv;
+  el.innerHTML = '<span class="ns-ico">'+(lv==='ok' ? '✅' : '⚠️')+'</span><span class="ns-txt"></span>'+
+                 (lv==='ok' ? '' : '<button class="btn sm" id="nsJump">ไปที่ภาพที่ต้องแก้</button>');
+  el.querySelector('.ns-txt').textContent = txt;
+  const jb = el.querySelector('#nsJump'); if(jb) jb.onclick = ()=>jumpToIssue();
+}
+function jumpToIssue(){
+  const list = reviewList();
+  const target = list.find(o=>NAME_UI[o.st].lv==='bad') || list.find(o=>NAME_UI[o.st].lv==='warn');
+  if(!target) return;
+  const card = E.imgGrid.children[target.i];
+  if(!card) return;
+  card.scrollIntoView({behavior: RM() ? 'auto' : 'smooth', block:'center'});
+  card.classList.remove('pulse'); void card.offsetWidth; card.classList.add('pulse');
+  const inp = card.querySelector('input.name-in');
+  setTimeout(()=>{ inp.focus(); inp.select(); }, RM() ? 0 : 350);
+}
+
+/* กล่องยืนยันก่อนเริ่มเกม: ถามว่าตรวจ/แก้คำเฉลยแล้วหรือยัง */
+let dlgReturn = null;
+function openDlg(list){
+  const c = countIssues(list);
+  const lv = c.bad ? 'bad' : c.warn ? 'warn' : 'ok';
+  const card = $('dlgCard');
+  card.className = 'dlg-card ' + lv;
+  $('dlgTitle').textContent = (lv==='ok' ? '✅ ' : '⚠️ ') + 'ตรวจคำเฉลยก่อนเริ่มเกม';
+  $('dlgMsg').textContent = c.bad
+    ? 'ยังมี '+c.bad+' ภาพที่ยังไม่ได้กรอกคำเฉลย หรือยังเป็นรหัสชื่อไฟล์ — ถ้าเริ่มเกมตอนนี้ ข้อความที่แสดงตอนเฉลยจะอ่านไม่รู้เรื่องหรือไม่ขึ้นเลย'
+    : c.warn ? 'มี '+c.warn+' ภาพที่ชื่อไม่มีตัวอักษรไทย ตรวจสอบอีกครั้งว่าข้อความที่จะแสดงตอนเฉลยถูกต้องแล้ว'
+    : 'ได้ตรวจสอบและแก้ไขคำเฉลย (ชื่อภาพ) ทั้ง '+list.length+' ภาพ แล้วใช่หรือไม่? ข้อความด้านล่างจะแสดงบนจอเมื่อเฉลยภาพ';
+  const show = (c.bad||c.warn) ? list.filter(o=>NAME_UI[o.st].lv!=='ok') : list;
+  const box = $('dlgList'); box.innerHTML = '';
+  show.forEach(o=>{
+    const u = NAME_UI[o.st];
+    const row = document.createElement('div'); row.className = 'dlg-row';
+    const img = document.createElement('img'); img.alt = ''; img.src = o.im.src;
+    const n = document.createElement('span'); n.className = 'dr-n'; n.textContent = 'ภาพที่ '+(o.i+1);
+    const t = document.createElement('span'); t.className = 'dr-t';
+    const nm = (o.im.name||'').trim();
+    if(nm) t.textContent = nm; else { t.textContent = '— ยังไม่ได้กรอก —'; t.classList.add('empty-t'); }
+    const ch = document.createElement('span'); ch.className = 'name-chip st-chip-'+u.lv; ch.textContent = u.chip;
+    row.append(img, n, t, ch); box.appendChild(row);
+  });
+  if(lv==='ok'){
+    $('dlgFix').textContent = 'กลับไปดูอีกครั้ง';
+    $('dlgGo').textContent = 'ตรวจแล้ว เริ่มเกม';
+  }else{
+    $('dlgFix').textContent = 'กลับไปแก้ไขคำเฉลย';
+    $('dlgGo').textContent = 'ข้ามไป เริ่มเกมเลย';
+  }
+  $('dlgFix').className = lv==='ok' ? 'btn' : 'btn primary';
+  $('dlgGo').className = lv==='ok' ? 'btn primary' : 'btn';
+  dlgReturn = document.activeElement;
+  $('dlg').hidden = false;
+  if(lv==='ok') SFX.click(); else SFX.warn();
+  ($(lv==='ok' ? 'dlgGo' : 'dlgFix')).focus();
+}
+function closeDlg(){
+  $('dlg').hidden = true;
+  if(dlgReturn && dlgReturn.focus) try{ dlgReturn.focus(); }catch(err){}
+}
+$('dlgFix').onclick = ()=>{ SFX.click(); closeDlg(); jumpToIssue(); };
+$('dlgGo').onclick = ()=>{ closeDlg(); startGame(); };
+$('dlg').addEventListener('mousedown', e=>{ if(e.target === $('dlg')) closeDlg(); });
+$('dlg').addEventListener('keydown', e=>{
+  if(e.key === 'Escape'){ e.stopPropagation(); closeDlg(); }
+  if(e.key === 'Tab'){            // วนโฟกัสอยู่ในกล่อง
+    const f = [$('dlgFix'), $('dlgGo')];
+    const i = f.indexOf(document.activeElement);
+    e.preventDefault();
+    f[(i + (e.shiftKey ? f.length-1 : 1)) % f.length].focus();
+  }
+});
 
 $('btnAll').onclick = ()=>{ S.images.forEach(i=>i.on=true); renderList(); };
 $('btnNone').onclick = ()=>{ S.images.forEach(i=>i.on=false); renderList(); };
@@ -995,7 +1201,11 @@ function go(page){
 }
 $('navManage').onclick = ()=>{ SFX.click(); go('manage'); };
 $('navPlay').onclick = ()=>{
-  SFX.click(); if(!S.playlist.length) buildPlaylist();
+  SFX.click();
+  if(!S.playlist.length){                // เริ่มเกมใหม่จากเมนูด้านบน: ตรวจคำเฉลยก่อนเช่นเดียวกับปุ่มเริ่มเกม
+    const list = reviewList();
+    if(list.length){ openDlg(list); return; }
+  }
   go('play'); loadImage(true);
   if(S.playlist.length) enterFs();       // หน้าเล่นเกมต้องเต็มจอก่อนเสมอ (ต้องเรียกใน click โดยตรง)
 };
@@ -1015,12 +1225,17 @@ function buildPlaylist(){
   S.pos = 0;
 }
 $('btnStart').onclick = ()=>{
+  const list = reviewList();
+  if(!list.length){ toast('กรุณาเลือกภาพอย่างน้อย 1 ภาพ'); return; }
+  openDlg(list);                         // ถามก่อนว่าตรวจ/แก้คำเฉลยแล้วหรือยัง
+};
+function startGame(){
   buildPlaylist();
   if(!S.playlist.length){ toast('กรุณาเลือกภาพอย่างน้อย 1 ภาพ'); return; }
   SFX.next();
   go('play'); loadImage(true);
   enterFs();
-};
+}
 
 function later(fn, ms){ const id = setTimeout(fn, ms); S.timers.push(id); return id; }
 function clearTimers(){ S.timers.forEach(clearTimeout); S.timers = []; }
