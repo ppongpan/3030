@@ -846,4 +846,569 @@ function readFile(file){
       im.onload = ()=>{
         const MAX = 1920;
         let w = im.naturalWidth, h = im.naturalHeight;
-        const sc = Math.min(1, MAX/M
+        const sc = Math.min(1, MAX/Math.max(w,h));
+        w = Math.round(w*sc); h = Math.round(h*sc);
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const x = c.getContext('2d');
+        x.fillStyle = '#fff'; x.fillRect(0,0,w,h);
+        x.drawImage(im,0,0,w,h);
+        res({src:c.toDataURL('image/jpeg',0.9), w:w, h:h});
+      };
+      im.onerror = ()=>res(null);
+      im.src = fr.result;
+    };
+    fr.onerror = ()=>res(null);
+    fr.readAsDataURL(file);
+  });
+}
+
+async function addFiles(files){
+  const list = [...files].filter(f=>f.type.startsWith('image/'));
+  if(!list.length) return;
+  toast('กำลังประมวลผล '+list.length+' ภาพ...');
+  for(const f of list){
+    const r = await readFile(f);
+    if(!r) continue;
+    S.images.push({
+      id:'i'+Date.now()+Math.random().toString(36).slice(2,7),
+      name:f.name.replace(/\.[^.]+$/,''),
+      src:r.src, w:r.w, h:r.h, on:true
+    });
+  }
+  renderList();
+  toast('เพิ่มแล้ว '+list.length+' ภาพ');
+  SFX.click();
+}
+
+$('btnPick').onclick = ()=>E.filePick.click();
+E.filePick.onchange = e=>{ addFiles(e.target.files); e.target.value=''; };
+['dragenter','dragover'].forEach(ev=>E.drop.addEventListener(ev,e=>{e.preventDefault();E.drop.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>E.drop.addEventListener(ev,e=>{e.preventDefault();E.drop.classList.remove('over');}));
+E.drop.addEventListener('drop', e=>addFiles(e.dataTransfer.files));
+
+/* ---------------- IMAGE LIST ---------------- */
+function renderList(){
+  E.imgGrid.innerHTML = '';
+  E.emptyBox.style.display = S.images.length ? 'none' : 'block';
+  const on = S.images.filter(i=>i.on).length;
+  E.countBadge.textContent = S.images.length + ' ภาพ • เลือกใช้ ' + on + ' ภาพ';
+  $('btnStart').disabled = on === 0;
+
+  S.images.forEach((im, idx)=>{
+    const card = document.createElement('div');
+    card.className = 'img-card' + (im.on ? '' : ' off');
+    card.style.animationDelay = Math.min(idx,20)*30 + 'ms';
+    card.innerHTML =
+      '<div class="thumb"><span class="ord">'+(idx+1)+'</span><img alt=""></div>'+
+      '<div class="body">'+
+        '<input type="text" placeholder="ชื่อภาพ / คำเฉลย">'+
+        '<div class="acts">'+
+          '<label class="switch" style="font-size:12px"><input type="checkbox" '+(im.on?'checked':'')+'><span class="track"></span>ใช้เล่น</label>'+
+          '<span class="spacer"></span>'+
+          '<button class="btn sm" data-a="up" title="เลื่อนขึ้น">↑</button>'+
+          '<button class="btn sm" data-a="down" title="เลื่อนลง">↓</button>'+
+          '<button class="btn sm" data-a="del" title="ลบ">✕</button>'+
+        '</div>'+
+      '</div>';
+    card.querySelector('img').src = im.src;
+    const nameIn = card.querySelector('input[type=text]');
+    nameIn.value = im.name;
+    nameIn.onchange = e=>{ im.name = e.target.value; };
+    card.querySelector('input[type=checkbox]').onchange = e=>{ im.on = e.target.checked; renderList(); };
+    card.querySelectorAll('button[data-a]').forEach(b=>{
+      b.onclick = ()=>{
+        const a = b.dataset.a;
+        if(a==='del') S.images.splice(idx,1);
+        if(a==='up' && idx>0) S.images.splice(idx-1,0,S.images.splice(idx,1)[0]);
+        if(a==='down' && idx<S.images.length-1) S.images.splice(idx+1,0,S.images.splice(idx,1)[0]);
+        renderList();
+      };
+    });
+    E.imgGrid.appendChild(card);
+  });
+}
+
+$('btnAll').onclick = ()=>{ S.images.forEach(i=>i.on=true); renderList(); };
+$('btnNone').onclick = ()=>{ S.images.forEach(i=>i.on=false); renderList(); };
+$('btnClear').onclick = ()=>{
+  if(!S.images.length) return;
+  if(confirm('ลบภาพทั้งหมดใช่หรือไม่?')){ S.images = []; renderList(); }
+};
+
+/* ---------------- GRID CONFIG ---------------- */
+const PRESETS = [[3,3],[4,3],[4,4],[5,4],[4,5],[6,4],[5,5],[6,5],[8,5]]
+  .sort((a,b)=> (a[0]*a[1]) - (b[0]*b[1]) || a[0]-b[0]);
+
+function renderPresets(){
+  E.presets.innerHTML = '';
+  PRESETS.forEach(([c,r])=>{
+    const b = document.createElement('button');
+    b.className = 'chip' + ((c===S.cols && r===S.rows) ? ' active' : '');
+    b.textContent = c+' × '+r+' ('+(c*r)+' ช่อง)';
+    b.onclick = ()=>{ S.cols=c; S.rows=r; applyCfg(); SFX.click(); };
+    E.presets.appendChild(b);
+  });
+}
+function applyCfg(){
+  E.inCols.value = S.cols;
+  E.inRows.value = S.rows;
+  renderPresets();
+  saveCfg();
+  if($('pagePlay').classList.contains('active')) loadImage();
+}
+E.inCols.onchange = ()=>{ S.cols = Math.max(2, Math.min(12, +E.inCols.value||5)); applyCfg(); };
+E.inRows.onchange = ()=>{ S.rows = Math.max(2, Math.min(12, +E.inRows.value||4)); applyCfg(); };
+$('swShuffleImg').onchange = e=>{ S.shuffleImages = e.target.checked; saveCfg(); };
+$('swRandomTile').onchange = e=>{ S.randomTile = e.target.checked; syncMode(); saveCfg(); };
+
+/* ---------------- SOUND UI ---------------- */
+function syncSound(){
+  $('swSound').checked = S.sound;
+  $('inVol').value = Math.round(S.vol*100);
+  $('bSnd').classList.toggle('muted', !S.sound);
+  $('bSnd').dataset.tip = S.sound ? 'ปิดเสียง (X)' : 'เปิดเสียง (X)';
+}
+function setSound(on){
+  S.sound = on;
+  SFX.setMuted(!on);
+  syncSound(); saveCfg();
+}
+$('swSound').onchange = e=>setSound(e.target.checked);
+$('bSnd').onclick = ()=>setSound(!S.sound);
+$('inVol').oninput = e=>{ S.vol = e.target.value/100; SFX.setVol(S.vol); saveCfg(); };
+$('inVol').onchange = ()=>SFX.tick();
+$('btnTestSnd').onclick = ()=>{ SFX.unlock(); SFX.test(); };
+['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev, ()=>SFX.unlock(), {once:true, capture:true}));
+
+/* ---------------- NAVIGATION ---------------- */
+function go(page){
+  const play = page === 'play';
+  $('pageManage').classList.toggle('active', !play);
+  $('pagePlay').classList.toggle('active', play);
+  $('navManage').classList.toggle('active', !play);
+  $('navPlay').classList.toggle('active', play);
+  document.body.classList.toggle('is-play', play);
+  setHot(false);
+  if(play) setTimeout(()=>{ E.stage.focus(); layout(); }, 0);
+  else { clearTimers(); cancelPending(); FX.clear(); exitFs(); }
+}
+$('navManage').onclick = ()=>{ SFX.click(); go('manage'); };
+$('navPlay').onclick = ()=>{
+  SFX.click(); if(!S.playlist.length) buildPlaylist();
+  go('play'); loadImage(true);
+  if(S.playlist.length) enterFs();       // หน้าเล่นเกมต้องเต็มจอก่อนเสมอ (ต้องเรียกใน click โดยตรง)
+};
+$('btnGoManage').onclick = ()=>go('manage');
+$('bHome').onclick = ()=>go('manage');
+
+/* ---------------- GAME ---------------- */
+function buildPlaylist(){
+  const idxs = S.images.map((im,i)=>({im:im,i:i})).filter(o=>o.im.on).map(o=>o.i);
+  if(S.shuffleImages){
+    for(let i=idxs.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [idxs[i],idxs[j]] = [idxs[j],idxs[i]];
+    }
+  }
+  S.playlist = idxs;
+  S.pos = 0;
+}
+$('btnStart').onclick = ()=>{
+  buildPlaylist();
+  if(!S.playlist.length){ toast('กรุณาเลือกภาพอย่างน้อย 1 ภาพ'); return; }
+  SFX.next();
+  go('play'); loadImage(true);
+  enterFs();
+};
+
+function later(fn, ms){ const id = setTimeout(fn, ms); S.timers.push(id); return id; }
+function clearTimers(){ S.timers.forEach(clearTimeout); S.timers = []; }
+function cancelPending(){
+  if(S.pending){
+    clearTimeout(S.pending.id);
+    const t = E.tiles.children[S.pending.i];
+    if(t) t.classList.remove('shake');
+    S.pending = null;
+  }
+}
+function hideAnswer(){ E.answer.classList.remove('show'); E.answer.style.opacity = ''; }
+
+function loadImage(animate){
+  clearTimers(); cancelPending(); FX.clear(); hideAnswer();
+  const has = S.playlist.length > 0;
+  E.inner.style.display = has ? 'block' : 'none';
+  E.topbar.classList.toggle('hidden', !has);
+  E.dock.classList.toggle('hidden', !has);
+  E.noImg.style.display = has ? 'none' : 'block';
+  if(!has) return;
+
+  const im = S.images[S.playlist[S.pos]];
+  if(!im) return;
+
+  S.opened.clear(); S.order = []; S.cursor = 0; S.revealed = false; S.finaleDone = false;
+  E.nextFab.classList.remove('show');
+  E.inner.classList.remove('tense');
+
+  $('bPrev').disabled = S.pos === 0;
+
+  E.img.onload = layout;
+  if(E.img.getAttribute('src') !== im.src) E.img.src = im.src;
+
+  buildTiles();
+  layout();
+  syncMode();
+  updateProgress();
+  if(animate && !RM() && E.inner.animate){
+    E.inner.animate([
+      {opacity:0, transform:'scale(.9) translateY(18px)'},
+      {opacity:1, transform:'none'}
+    ], {duration:560, easing:'cubic-bezier(.22,1,.36,1)'});
+  }
+}
+
+function buildTiles(){
+  E.tiles.style.gridTemplateColumns = 'repeat('+S.cols+',1fr)';
+  E.tiles.style.gridTemplateRows = 'repeat('+S.rows+',1fr)';
+  E.tiles.innerHTML = '';
+  const total = S.cols * S.rows;
+  for(let i=0;i<total;i++){
+    const t = document.createElement('div');
+    const r = Math.floor(i/S.cols), c = i%S.cols;
+    t.className = 'tile in' + (i===S.cursor ? ' cursor' : '');
+    t.dataset.i = i;
+    t.style.setProperty('--wd', ((r+c)*38)+'ms');
+    t.style.setProperty('--bd', '-'+((i*0.37)%3.4).toFixed(2)+'s');
+    t.innerHTML = '<span class="tile-num"><span class="n3">3</span><span class="n0">0</span></span>';
+    t.onclick = ()=>{ setCursor(i); openTile(i); };
+    t.addEventListener('animationend', e=>{
+      if(e.target !== t) return;
+      if(e.animationName === 'sheen-wave'){ t.classList.remove('in'); }
+      if(e.animationName === 'tile-back'){ t.classList.remove('back'); t.style.animationDelay = ''; }
+    });
+    E.tiles.appendChild(t);
+  }
+}
+
+function layout(){
+  FX.size();
+  if(!E.img.naturalWidth) return;
+  const cs = getComputedStyle(E.stage);
+  const w0 = E.stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const h0 = E.stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  if(w0<=0 || h0<=0) return;
+  const ar = E.img.naturalWidth / E.img.naturalHeight;
+  let w = w0, h = w0/ar;
+  if(h > h0){ h = h0; w = h0*ar; }
+  E.inner.style.width = Math.floor(w)+'px';
+  E.inner.style.height = Math.floor(h)+'px';
+  const size = Math.max(11, Math.min(w/S.cols, h/S.rows) * 0.42);
+  E.tiles.style.setProperty('--tile-font', size.toFixed(1)+'px');
+}
+window.addEventListener('resize', layout);
+if(window.ResizeObserver) new ResizeObserver(()=>layout()).observe(E.stage);
+
+function updateProgress(){
+  const total = S.cols*S.rows, n = S.opened.size, left = total - n;
+  E.progFill.style.transform = 'scaleX('+(n/total).toFixed(4)+')';
+  const im = S.images[S.playlist[S.pos]];
+  E.meta.textContent = (S.pos+1)+' / '+S.playlist.length+' • '+S.cols+'×'+S.rows+' • เปิดแล้ว '+n+'/'+total;
+  E.inner.classList.toggle('tense', left>0 && left<=3 && !S.revealed && !!im);
+}
+
+function tileCenter(t){
+  const a = t.getBoundingClientRect(), b = E.stage.getBoundingClientRect();
+  return {x:a.left-b.left+a.width/2, y:a.top-b.top+a.height/2};
+}
+
+function openTile(i, o){
+  o = o || {};
+  if(S.opened.has(i) || S.pending) return;
+  const total = S.cols*S.rows;
+  if(!o.noSuspense && total>1 && S.opened.size === total-1 && !RM()) return suspense(i);
+  doOpen(i);
+}
+function suspense(i){
+  const t = E.tiles.children[i];
+  const dur = 0.85;
+  if(t) t.classList.add('shake');
+  SFX.suspense(dur);
+  S.pending = {i, id:setTimeout(()=>{
+    S.pending = null;
+    if(t) t.classList.remove('shake');
+    doOpen(i);
+  }, dur*1000)};
+}
+function doOpen(i, silent, delay){
+  if(S.opened.has(i)) return;
+  const total = S.cols*S.rows;
+  S.opened.add(i); S.order.push(i);
+  const t = E.tiles.children[i];
+  if(t){
+    if(!silent){ const c = tileCenter(t); FX.burst(c.x, c.y, i%2 ? '#FFB27A' : '#9CAF88', 16); }
+    t.classList.remove('back','in','shake');
+    t.style.animationDelay = delay ? delay+'ms' : '';
+    t.classList.add('opened');
+  }
+  if(silent){ return; }
+  const left = total - S.opened.size;
+  SFX.open(S.opened.size/total);
+  if(left>0 && left<=3) later(()=>SFX.thump(), 140);
+  updateProgress();
+  checkDone();
+}
+function openNext(){
+  if(S.pending) return;
+  const total = S.cols*S.rows, left = [];
+  for(let i=0;i<total;i++) if(!S.opened.has(i)) left.push(i);
+  if(!left.length){ checkDone(); return; }
+  const pick = S.randomTile ? left[Math.floor(Math.random()*left.length)] : left[0];
+  setCursor(pick);
+  openTile(pick);
+}
+function revealAll(){
+  cancelPending();
+  const total = S.cols*S.rows;
+  const cr = (S.rows-1)/2, cc = (S.cols-1)/2;
+  const maxd = Math.hypot(cr,cc) || 1;
+  let maxDelay = 0, any = false;
+  for(let i=0;i<total;i++){
+    if(S.opened.has(i)) continue;
+    any = true;
+    const d = RM() ? 0 : Math.round(Math.hypot(Math.floor(i/S.cols)-cr, (i%S.cols)-cc)/maxd*800);
+    maxDelay = Math.max(maxDelay, d);
+    doOpen(i, true, d);
+  }
+  S.revealed = true;
+  updateProgress();
+  if(any){ SFX.reveal(); }
+  if(!S.finaleDone) finale(any ? maxDelay + 450 : 0);
+  else showNextFab();
+}
+function checkDone(){
+  if(S.opened.size === S.cols*S.rows && !S.finaleDone){ S.revealed = true; finale(480); }
+}
+function finale(delay){
+  S.finaleDone = true;
+  later(()=>{
+    E.inner.classList.remove('tense');
+    if(!RM()){
+      E.flash.classList.remove('go'); void E.flash.offsetWidth; E.flash.classList.add('go');
+      FX.confetti();
+    }
+    SFX.win();
+    const im = S.images[S.playlist[S.pos]];
+    const name = im && (im.name||'').trim();
+    if(name){
+      E.answerText.textContent = name;
+      E.answer.classList.remove('show'); void E.answer.offsetWidth; E.answer.classList.add('show');
+    }
+    showNextFab();
+  }, delay);
+}
+function undo(){
+  if(!S.order.length) return;
+  clearTimers(); cancelPending(); hideAnswer(); FX.clear();
+  const last = S.order.pop();
+  S.opened.delete(last);
+  const t = E.tiles.children[last];
+  if(t){
+    t.classList.remove('opened','in');
+    t.style.animationDelay = '';
+    void t.offsetWidth;
+    t.classList.add('back');
+  }
+  S.revealed = false; S.finaleDone = false;
+  E.nextFab.classList.remove('show');
+  SFX.undo();
+  updateProgress();
+}
+function resetImage(){
+  clearTimers(); cancelPending(); hideAnswer(); FX.clear();
+  const total = S.cols*S.rows;
+  const wasOpen = S.opened.size > 0;
+  S.opened.clear(); S.order = []; S.revealed = false; S.finaleDone = false;
+  E.nextFab.classList.remove('show');
+  [...E.tiles.children].forEach((t,i)=>{
+    t.classList.remove('opened','in','shake');
+    t.style.animationDelay = '';
+    void t.offsetWidth;
+    t.style.animationDelay = (RM() ? 0 : (i/total)*350)+'ms';
+    t.classList.add('back');
+  });
+  if(wasOpen) SFX.reset();
+  updateProgress();
+}
+function showNextFab(){
+  const last = S.pos >= S.playlist.length-1;
+  E.nextFabText.textContent = last ? 'เริ่มใหม่ตั้งแต่ภาพแรก' : 'ภาพถัดไป';
+  E.nextFab.classList.remove('show'); void E.nextFab.offsetWidth;
+  E.nextFab.classList.add('show');
+}
+function nextImage(){
+  if(!S.playlist.length) return;
+  if(S.pos < S.playlist.length-1) S.pos++; else S.pos = 0;
+  SFX.next();
+  loadImage(true);
+}
+function prevImage(){
+  if(S.pos > 0){ S.pos--; SFX.next(); loadImage(true); }
+}
+function setCursor(i){
+  const old = E.tiles.querySelector('.tile.cursor');
+  if(old) old.classList.remove('cursor');
+  S.cursor = i;
+  const t = E.tiles.children[i];
+  if(t) t.classList.add('cursor');
+}
+function moveCursor(dx,dy){
+  const before = S.cursor;
+  let c = S.cursor % S.cols, r = Math.floor(S.cursor / S.cols);
+  c = Math.max(0, Math.min(S.cols-1, c+dx));
+  r = Math.max(0, Math.min(S.rows-1, r+dy));
+  setCursor(r*S.cols + c);
+  if(S.cursor !== before) SFX.tick();
+}
+function syncMode(){
+  $('swRandomTile').checked = S.randomTile;
+  $('bMode').classList.toggle('on', S.randomTile);
+  $('bMode').dataset.tip = S.randomTile ? 'โหมด: สุ่มช่อง (M)' : 'โหมด: เรียงลำดับ (M)';
+}
+function toggleMode(){
+  S.randomTile = !S.randomTile;
+  syncMode(); saveCfg(); SFX.mode();
+  toast(S.randomTile ? 'โหมดสุ่มช่อง' : 'โหมดเรียงลำดับ');
+}
+
+E.nextFab.onclick = nextImage;
+$('bPrev').onclick = prevImage;
+$('bNextImg').onclick = nextImage;
+$('bOpen').onclick = openNext;
+$('bReveal').onclick = revealAll;
+$('bUndo').onclick = undo;
+$('bReset').onclick = resetImage;
+$('bMode').onclick = toggleMode;
+$('bFs').onclick = toggleFs;
+// กดปุ่มใน dock แล้วไม่ย้ายโฟกัสออกจากเวที (กัน Space/Enter ไปกดปุ่มซ้ำ)
+E.dock.addEventListener('mousedown', e=>e.preventDefault());
+E.nextFab.addEventListener('mousedown', e=>e.preventDefault());
+
+/* ---------------- FULLSCREEN + โซนร้อนของแถบเครื่องมือ ---------------- */
+function isFs(){ return E.stage.classList.contains('is-fs'); }
+function fsActive(){ return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+function enterFs(){
+  if(fsActive()) return;
+  const req = E.stage.requestFullscreen || E.stage.webkitRequestFullscreen;
+  if(!req) return;
+  try{ const p = req.call(E.stage); if(p && p.catch) p.catch(()=>{}); }catch(err){}
+}
+function exitFs(){
+  if(!fsActive()) return;
+  try{ const p = (document.exitFullscreen || document.webkitExitFullscreen).call(document); if(p && p.catch) p.catch(()=>{}); }catch(err){}
+}
+function toggleFs(){
+  const el = E.stage;
+  if(document.fullscreenElement || document.webkitFullscreenElement){
+    (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  }else{
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if(req) req.call(el);
+  }
+}
+function onFsChange(){
+  const fs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  E.stage.classList.toggle('is-fs', fs);
+  setHot(false);               // เข้า/ออกเต็มจอ: เริ่มจากซ่อนเสมอ
+  E.stage.classList.remove('idle');
+  if(fs) wakeCursor();
+  E.stage.focus();
+  [0,60,180,400,700].forEach(ms=>setTimeout(layout, ms));
+}
+document.addEventListener('fullscreenchange', onFsChange);
+document.addEventListener('webkitfullscreenchange', onFsChange);
+
+/* แถบเครื่องมือในเต็มจอจะโผล่ "เฉพาะ" เมื่อเมาส์อยู่โซนล่างกลางจอ
+   คีย์บอร์ด / ลากเมาส์ที่อื่น / การเปลี่ยนภาพ ไม่เกี่ยวข้องกับการแสดงแถบเลย */
+const HOT = {on:false, idleT:null};
+function setHot(v){
+  if(HOT.on === v) return;
+  HOT.on = v;
+  E.stage.classList.toggle('hot', v);
+}
+function inZone(x,y){
+  const w = E.stage.clientWidth, h = E.stage.clientHeight;
+  // เข้า: กว้าง 40% (ไม่แคบกว่า dock+120px) สูง 110px · ออก: กว้างขึ้น +80 สูง 160px (กันกะพริบที่ขอบ)
+  const dw = Math.max(w*.4, E.dock.offsetWidth+120) + (HOT.on ? 80 : 0);
+  const zh = HOT.on ? 160 : 110;
+  return Math.abs(x - w/2) <= dw/2 && y >= h - zh;
+}
+function wakeCursor(){
+  E.stage.classList.remove('idle');
+  clearTimeout(HOT.idleT);
+  if(isFs()) HOT.idleT = setTimeout(()=>{ if(!HOT.on) E.stage.classList.add('idle'); }, 2000);
+}
+E.stage.addEventListener('pointermove', e=>{
+  if(!isFs()) return;
+  wakeCursor();
+  const r = E.stage.getBoundingClientRect();
+  let want = inZone(e.clientX - r.left, e.clientY - r.top);
+  if(want && !HOT.on && e.buttons) want = false;    // ลากเมาส์ (กดค้าง) เข้าโซน = ไม่แสดง
+  setHot(want);
+});
+E.stage.addEventListener('pointerleave', ()=>setHot(false));
+E.stage.addEventListener('pointerdown', e=>{
+  if(!isFs() || e.pointerType === 'mouse') return;   // จอสัมผัส: แตะในโซนเพื่อเรียกแถบ
+  const r = E.stage.getBoundingClientRect();
+  setHot(inZone(e.clientX - r.left, e.clientY - r.top));
+});
+window.addEventListener('blur', ()=>setHot(false));
+
+/* ---------------- KEYBOARD ---------------- */
+function handleKey(e){
+  if(!$('pagePlay').classList.contains('active')) return;
+  if(e.ctrlKey || e.metaKey || e.altKey) return;
+  const tag = (e.target && e.target.tagName) || '';
+  if(tag==='INPUT' || tag==='TEXTAREA' || tag==='SELECT') return;
+  const k = (e.key||'').toLowerCase();
+  let used = true;
+
+  switch(k){
+    case ' ': case 'spacebar': openNext(); break;
+    case 'enter': revealAll(); break;
+    case 'arrowright': nextImage(); break;
+    case 'arrowleft': prevImage(); break;
+    case 'arrowup': moveCursor(0,-1); break;
+    case 'arrowdown': moveCursor(0,1); break;
+    case 'w': moveCursor(0,-1); break;
+    case 's': moveCursor(0,1); break;
+    case 'a': moveCursor(-1,0); break;
+    case 'd': moveCursor(1,0); break;
+    case 'o': openTile(S.cursor); break;
+    case 'z': case 'backspace': undo(); break;
+    case 'r': resetImage(); break;
+    case 'm': toggleMode(); break;
+    case 'x': setSound(!S.sound); break;
+    case 'n': case 'pagedown': nextImage(); break;
+    case 'p': case 'pageup': prevImage(); break;
+    case 'f': toggleFs(); break;
+    case 'h': E.stage.classList.toggle('hide-ui'); break;
+    default: used = false;
+  }
+  if(used) e.preventDefault();      // ไม่เรียกแสดงแถบเครื่องมืออีกต่อไป
+}
+document.addEventListener('keydown', handleKey, true);
+
+/* ---------------- INIT ---------------- */
+loadCfg();
+SFX.setVol(S.vol); SFX.setMuted(!S.sound, true);
+E.inCols.value = S.cols;
+E.inRows.value = S.rows;
+$('swShuffleImg').checked = S.shuffleImages;
+$('swRandomTile').checked = S.randomTile;
+renderPresets();
+renderList();
+syncMode();
+syncSound();
+</script>
+</body>
+</html>
